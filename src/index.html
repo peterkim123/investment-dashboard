@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self';" />
+    <title>Investment Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">▲</span>
+        <span class="brand-name">Investment Dashboard</span>
+      </div>
+      <div class="portfolio-stats" id="portfolio-stats">
+        <div class="stat"><div class="stat-label">Market value</div><div class="stat-value" id="stat-value">—</div></div>
+        <div class="stat"><div class="stat-label">Day P&L</div><div class="stat-value" id="stat-day">—</div></div>
+        <div class="stat"><div class="stat-label">Total P&L</div><div class="stat-value" id="stat-total">—</div></div>
+        <div class="stat"><div class="stat-label">Return</div><div class="stat-value" id="stat-return">—</div></div>
+        <div class="stat"><div class="stat-label">IRR</div><div class="stat-value" id="stat-irr">—</div></div>
+        <div class="stat"><div class="stat-label">vs SPY (1Y)</div><div class="stat-value" id="stat-vsspy">—</div></div>
+        <div class="stat"><div class="stat-label">Portfolio β</div><div class="stat-value" id="stat-beta">—</div></div>
+      </div>
+      <div class="topbar-right">
+        <span class="market-status" id="market-status">●</span>
+        <span class="last-refresh" id="last-refresh">—</span>
+        <span class="sync-status" id="sync-status" title="Cloud sync status">○ offline</span>
+        <label class="toggle">
+          <input type="checkbox" id="auto-refresh" checked />
+          <span>Auto</span>
+        </label>
+        <button class="btn-icon" id="settings-btn" title="Settings">⚙</button>
+        <button class="btn-icon" id="refresh-btn" title="Refresh now">↻</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <div class="left-column">
+        <section class="positions-pane">
+          <div class="pane-header">
+            <h2>Positions</h2>
+            <button class="btn-primary" id="add-position-btn">＋ Add</button>
+          </div>
+          <div class="positions-table-wrap">
+            <table class="positions-table" id="positions-table">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th class="num">Shares</th>
+                  <th class="num">Avg cost</th>
+                  <th class="num">Last</th>
+                  <th class="num">Day Δ</th>
+                  <th class="num">Day P&L</th>
+                  <th class="num">Total Δ</th>
+                  <th class="num">Total P&L</th>
+                  <th class="num">IRR</th>
+                  <th class="num">Weight</th>
+                  <th class="num">Sharpe (1Y)</th>
+                  <th class="num">β (1Y)</th>
+                  <th class="num">α (1Y)</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="positions-tbody">
+                <tr class="empty-row"><td colspan="14">No positions yet — click <strong>+ Add</strong> to start.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="left-splitter" id="left-splitter" title="Drag to resize"></div>
+
+        <section class="watchlist-pane">
+          <div class="pane-header">
+            <h2>Watchlist</h2>
+            <button class="btn-primary" id="add-watch-btn">＋ Add</button>
+          </div>
+          <div class="positions-table-wrap">
+            <table class="positions-table" id="watchlist-table">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Name</th>
+                  <th class="num">Last</th>
+                  <th class="num">Day Δ</th>
+                  <th class="num">Day Δ $</th>
+                  <th class="num">Sharpe (1Y)</th>
+                  <th class="num">β (1Y)</th>
+                  <th class="num">α (1Y)</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="watchlist-tbody">
+                <tr class="empty-row"><td colspan="9">No watchlist yet — click <strong>+ Add</strong> to track names you don't own.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <section class="detail-pane" id="detail-pane">
+        <div class="detail-empty" id="detail-empty">
+          <div class="detail-empty-inner">
+            <div class="detail-empty-mark">◔</div>
+            <p>Select a position to see price chart, news, filings, and risk metrics.</p>
+          </div>
+        </div>
+        <div class="detail-content hidden" id="detail-content">
+          <div class="detail-header">
+            <div>
+              <div class="detail-symbol" id="detail-symbol">—</div>
+              <div class="detail-name" id="detail-name">—</div>
+            </div>
+            <div class="detail-price">
+              <div class="detail-last" id="detail-last">—</div>
+              <div class="detail-change" id="detail-change">—</div>
+            </div>
+          </div>
+
+          <div class="range-tabs">
+            <button class="range-tab" data-range="1W">1W</button>
+            <button class="range-tab active" data-range="1M">1M</button>
+            <button class="range-tab" data-range="3M">3M</button>
+            <button class="range-tab" data-range="6M">6M</button>
+            <button class="range-tab" data-range="1Y">1Y</button>
+            <button class="range-tab" data-range="5Y">5Y</button>
+          </div>
+
+          <div class="chart-wrap">
+            <canvas id="price-chart"></canvas>
+          </div>
+
+          <div class="metrics-grid" id="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-card-title">Since purchase</div>
+              <div class="metric-row"><span>Return</span><span id="m-since-ret">—</span></div>
+              <div class="metric-row"><span>IRR (annualized)</span><span id="m-since-irr">—</span></div>
+              <div class="metric-row"><span>SPY return</span><span id="m-since-bench">—</span></div>
+              <div class="metric-row"><span>Excess</span><span id="m-since-excess">—</span></div>
+              <div class="metric-row"><span>Sharpe</span><span id="m-since-sharpe">—</span></div>
+              <div class="metric-row"><span>β vs SPY</span><span id="m-since-beta">—</span></div>
+              <div class="metric-row"><span>α (annualized)</span><span id="m-since-alpha">—</span></div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-card-title">Trailing 1Y</div>
+              <div class="metric-row"><span>Return</span><span id="m-1y-ret">—</span></div>
+              <div class="metric-row"><span>SPY return</span><span id="m-1y-bench">—</span></div>
+              <div class="metric-row"><span>Excess</span><span id="m-1y-excess">—</span></div>
+              <div class="metric-row"><span>Sharpe</span><span id="m-1y-sharpe">—</span></div>
+              <div class="metric-row"><span>β vs SPY</span><span id="m-1y-beta">—</span></div>
+              <div class="metric-row"><span>α (annualized)</span><span id="m-1y-alpha">—</span></div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3>Latest news</h3>
+            <ul class="news-list" id="news-list"><li class="muted">Loading…</li></ul>
+          </div>
+
+          <div class="detail-section">
+            <div class="section-row">
+              <h3>SEC filings <span class="dim" id="filings-summary">(last 5 years)</span></h3>
+            </div>
+            <div class="filter-row">
+              <div class="filter-row-label">Type</div>
+              <div class="filter-pills" id="filings-filters">
+                <button class="filter-pill active" data-cat="all">All</button>
+                <button class="filter-pill" data-cat="annual">Annual (10-K)</button>
+                <button class="filter-pill" data-cat="quarterly">Quarterly (10-Q)</button>
+                <button class="filter-pill" data-cat="material">Material (8-K)</button>
+                <button class="filter-pill" data-cat="proxy">Proxy</button>
+                <button class="filter-pill" data-cat="insider">Insider/Holdings</button>
+                <button class="filter-pill" data-cat="other">Other</button>
+              </div>
+            </div>
+            <div class="filter-row">
+              <div class="filter-row-label">Year</div>
+              <div class="filter-pills" id="filings-years">
+                <button class="filter-pill active" data-year="all">All</button>
+              </div>
+            </div>
+            <ul class="filings-list" id="filings-list"><li class="muted">Loading…</li></ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal-backdrop hidden" id="watch-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Add to watchlist</h3>
+          <button class="btn-icon" id="watch-modal-close">×</button>
+        </div>
+        <div class="modal-body">
+          <label>Ticker
+            <div class="autocomplete">
+              <input type="text" id="watch-ticker" autocomplete="off" placeholder="e.g. NVDA" />
+              <div class="suggestions hidden" id="watch-suggestions"></div>
+            </div>
+          </label>
+          <div class="modal-error hidden" id="watch-error"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" id="watch-cancel">Cancel</button>
+          <button class="btn-primary" id="watch-save">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="settings-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Cloud sync settings</h3>
+          <button class="btn-icon" id="settings-modal-close">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="hint">Configure to sync positions across devices. Leave blank to keep this app fully local.</div>
+          <label>Server URL
+            <input type="text" id="settings-url" placeholder="https://your-app.vercel.app" />
+          </label>
+          <label>Device token
+            <input type="password" id="settings-token" placeholder="paste OWNER_TOKEN" />
+          </label>
+          <div class="settings-test-result hidden" id="settings-test-result"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" id="settings-test">Test</button>
+          <button class="btn-secondary" id="settings-cancel">Cancel</button>
+          <button class="btn-primary" id="settings-save">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="add-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 id="add-modal-title">Add position</h3>
+          <button class="btn-icon" id="add-modal-close">×</button>
+        </div>
+        <div class="modal-body">
+          <label>Ticker
+            <div class="autocomplete">
+              <input type="text" id="add-ticker" autocomplete="off" placeholder="e.g. AAPL" />
+              <div class="suggestions hidden" id="add-suggestions"></div>
+            </div>
+          </label>
+          <label>Shares <input type="number" id="add-shares" step="any" min="0" /></label>
+          <label>Avg cost (per share, USD) <input type="number" id="add-cost" step="any" min="0" /></label>
+          <label>Purchase date <input type="date" id="add-date" /></label>
+          <div class="modal-error hidden" id="add-error"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" id="add-cancel">Cancel</button>
+          <button class="btn-primary" id="add-save">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="../node_modules/chart.js/dist/chart.umd.js"></script>
+    <script src="../node_modules/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.js"></script>
+    <script src="renderer.js"></script>
+  </body>
+</html>

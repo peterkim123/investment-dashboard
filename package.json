@@ -1,0 +1,43 @@
+{
+  "name": "investment-dashboard",
+  "version": "0.1.0",
+  "description": "Personal investment dashboard with live prices, news, SEC filings, and risk metrics",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "author": "Peter Kim",
+  "license": "ISC",
+  "dependencies": {
+    "chart.js": "^4.4.1",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "date-fns": "^3.6.0"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.personal.investment-dashboard",
+    "productName": "Investment Dashboard",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDir": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Investment Dashboard"
+    }
+  }
+}
