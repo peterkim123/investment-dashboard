@@ -12,7 +12,8 @@
   "dependencies": {
     "chart.js": "^4.4.1",
     "chartjs-adapter-date-fns": "^3.0.0",
-    "date-fns": "^3.6.0"
+    "date-fns": "^3.6.0",
+    "marked": "^14.1.4"
   },
   "devDependencies": {
     "electron": "^30.0.0",
@@ -34,7 +35,7 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDir": true,
+      "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Investment Dashboard"

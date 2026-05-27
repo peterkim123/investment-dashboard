@@ -3,15 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self';" />
-    <title>Investment Dashboard</title>
+    <title>PK Terminal</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
-        <span class="brand-mark">▲</span>
-        <span class="brand-name">Investment Dashboard</span>
+        <span class="brand-mark">PK</span>
+        <span class="brand-name">TERMINAL</span>
       </div>
+      <div class="portfolio-selector">
+        <button class="portfolio-button" id="portfolio-button">
+          <span class="portfolio-current-name" id="portfolio-current-name">—</span>
+          <span class="caret">▾</span>
+        </button>
+        <div class="portfolio-menu hidden" id="portfolio-menu"></div>
+      </div>
+      <nav class="view-tabs">
+        <button class="view-tab active" data-view="dashboard">Dashboard</button>
+        <button class="view-tab" data-view="research">Research</button>
+      </nav>
       <div class="portfolio-stats" id="portfolio-stats">
         <div class="stat"><div class="stat-label">Market value</div><div class="stat-value" id="stat-value">—</div></div>
         <div class="stat"><div class="stat-label">Day P&L</div><div class="stat-value" id="stat-day">—</div></div>
@@ -30,11 +41,11 @@
           <span>Auto</span>
         </label>
         <button class="btn-icon" id="settings-btn" title="Settings">⚙</button>
-        <button class="btn-icon" id="refresh-btn" title="Refresh now">↻</button>
+        <button class="btn-icon" id="refresh-btn" title="Refresh now"><span class="spin-target">↻</span></button>
       </div>
     </header>
 
-    <main class="layout">
+    <main class="layout" id="view-dashboard">
       <div class="left-column">
         <section class="positions-pane">
           <div class="pane-header">
@@ -98,6 +109,8 @@
         </section>
       </div>
 
+      <div class="layout-splitter" id="layout-splitter" title="Drag to resize"></div>
+
       <section class="detail-pane" id="detail-pane">
         <div class="detail-empty" id="detail-empty">
           <div class="detail-empty-inner">
@@ -130,6 +143,14 @@
             <canvas id="price-chart"></canvas>
           </div>
 
+          <div class="earnings-card hidden" id="earnings-card">
+            <div class="earnings-card-header">
+              <span class="earnings-card-label">Next earnings</span>
+              <span class="earnings-card-when" id="earnings-when">—</span>
+            </div>
+            <div class="earnings-card-detail" id="earnings-detail"></div>
+          </div>
+
           <div class="metrics-grid" id="metrics-grid">
             <div class="metric-card">
               <div class="metric-card-title">Since purchase</div>
@@ -153,8 +174,33 @@
           </div>
 
           <div class="detail-section">
+            <div class="section-row">
+              <h3>Notes <span class="dim" id="notes-meta"></span></h3>
+              <div class="section-actions">
+                <button class="btn-secondary hidden" id="notes-open-obsidian">Open in Obsidian</button>
+              </div>
+            </div>
+            <div class="notes-body" id="notes-body"><div class="muted">No notes folder configured. Set your Obsidian vault path in Settings.</div></div>
+          </div>
+
+          <div class="detail-section">
+            <div class="section-row">
+              <h3>Models <span class="dim" id="models-meta"></span></h3>
+              <div class="section-actions">
+                <button class="btn-primary" id="models-upload">＋ Upload</button>
+              </div>
+            </div>
+            <ul class="models-list" id="models-list"><li class="muted">No models uploaded for this ticker yet.</li></ul>
+          </div>
+
+          <div class="detail-section">
             <h3>Latest news</h3>
             <ul class="news-list" id="news-list"><li class="muted">Loading…</li></ul>
+          </div>
+
+          <div class="detail-section">
+            <h3>FactSet alerts <span class="dim" id="alerts-summary"></span></h3>
+            <ul class="alerts-list" id="alerts-list"><li class="muted">No FactSet alerts mention this ticker.</li></ul>
           </div>
 
           <div class="detail-section">
@@ -184,6 +230,188 @@
         </div>
       </section>
     </main>
+
+    <main class="research-view hidden" id="view-research">
+      <header class="research-toolbar">
+        <div class="research-tabs">
+          <button class="research-tab active" data-rtab="companies">Companies</button>
+          <button class="research-tab" data-rtab="industries">Industries</button>
+          <button class="research-tab" data-rtab="misc">Miscellaneous</button>
+        </div>
+        <input type="search" id="research-search" placeholder="Search…" class="research-search" />
+        <button class="btn-primary" id="research-new-btn">＋ New</button>
+        <button class="btn-secondary" id="research-refresh">↻ Reload</button>
+      </header>
+
+      <section class="research-grid" id="research-grid">
+        <div class="muted research-empty">Loading…</div>
+      </section>
+
+      <section class="research-drill hidden" id="research-drill">
+        <div class="drill-back-row">
+          <button class="btn-secondary" id="drill-back">← Back</button>
+          <div class="drill-spacer"></div>
+          <button class="btn-secondary" id="drill-rename">Rename</button>
+          <button class="btn-secondary hidden" id="drill-open-obsidian">Open in Obsidian</button>
+          <button class="btn-danger hidden" id="drill-delete">Delete section</button>
+        </div>
+
+        <div class="drill-header">
+          <div class="drill-title-row">
+            <h2 id="drill-title">—</h2>
+            <span class="research-tag" id="drill-tag">—</span>
+          </div>
+          <div class="drill-ticker hidden" id="drill-ticker">—</div>
+          <div class="drill-meta" id="drill-meta"></div>
+          <div class="drill-desc" id="drill-desc"></div>
+        </div>
+
+        <div class="drill-body">
+          <div class="drill-section">
+            <div class="section-row">
+              <h3>Notes <span class="dim" id="drill-notes-count"></span></h3>
+              <div class="section-actions">
+                <button class="btn-secondary" id="drill-add-note">＋ Add note file</button>
+              </div>
+            </div>
+            <div class="file-list-header hidden" id="drill-notes-sort"></div>
+            <ul class="drill-files" id="drill-notes"><li class="muted">No notes yet.</li></ul>
+          </div>
+
+          <div class="drill-section">
+            <div class="section-row">
+              <h3>Models &amp; files <span class="dim" id="drill-models-count"></span></h3>
+              <div class="section-actions">
+                <button class="btn-primary" id="drill-add-model">＋ Upload file</button>
+              </div>
+            </div>
+            <div class="file-list-header hidden" id="drill-models-sort"></div>
+            <ul class="drill-files" id="drill-models"><li class="muted">No models or files yet.</li></ul>
+          </div>
+
+          <div class="drill-section" id="drill-note-viewer-wrap">
+            <div class="section-row">
+              <h3 id="drill-note-viewer-title">Note preview</h3>
+              <div class="section-actions">
+                <button class="btn-secondary hidden" id="drill-note-viewer-close">Close</button>
+              </div>
+            </div>
+            <div class="notes-body" id="drill-note-viewer"><div class="muted">Click a note above to preview it here.</div></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal-backdrop hidden" id="new-section-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 id="new-section-title">New section</h3>
+          <button class="btn-icon" id="new-section-close">×</button>
+        </div>
+        <div class="modal-body">
+          <label>Type
+            <select id="new-section-type">
+              <option value="company">Company (ticker)</option>
+              <option value="industry">Industry</option>
+              <option value="misc">Miscellaneous</option>
+            </select>
+          </label>
+          <label id="new-section-ticker-label">Ticker
+            <input type="text" id="new-section-ticker" placeholder="e.g. NVDA" />
+          </label>
+          <label id="new-section-name-label">Name
+            <input type="text" id="new-section-name" placeholder="e.g. Semis, Macro outlook" />
+          </label>
+          <label>Description (optional)
+            <input type="text" id="new-section-desc" placeholder="One-line description" />
+          </label>
+          <div class="modal-error hidden" id="new-section-error"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" id="new-section-cancel">Cancel</button>
+          <button class="btn-primary" id="new-section-save">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="upload-model-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Upload model</h3>
+          <button class="btn-icon" id="upload-model-close">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="upload-target">For ticker: <b id="upload-model-ticker">—</b></div>
+          <label>Source
+            <select id="upload-model-source">
+              <option value="Mine">Mine</option>
+              <option value="Tegus">Tegus</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+          <label>Note (optional)
+            <input type="text" id="upload-model-note" placeholder="e.g. scenario v3, bear case" />
+          </label>
+          <div class="upload-files-summary" id="upload-files-summary">No files selected.</div>
+          <div class="modal-error hidden" id="upload-model-error"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" id="upload-model-cancel">Cancel</button>
+          <button class="btn-secondary" id="upload-model-pick">Pick files…</button>
+          <button class="btn-primary" id="upload-model-save" disabled>Upload</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="alert-reader-modal">
+      <div class="modal modal-reader">
+        <div class="modal-header">
+          <div class="reader-header-meta">
+            <span class="alert-type" id="reader-type">—</span>
+            <span class="dim" id="reader-date">—</span>
+          </div>
+          <button class="btn-icon" id="reader-close">×</button>
+        </div>
+        <div class="modal-body reader-body">
+          <h2 class="reader-subject" id="reader-subject">—</h2>
+          <div class="reader-meta-line" id="reader-meta-line">—</div>
+          <div class="reader-tickers" id="reader-tickers"></div>
+          <div class="reader-summary hidden" id="reader-summary">
+            <div class="reader-summary-label">Summary</div>
+            <div class="reader-summary-text" id="reader-summary-text">—</div>
+          </div>
+          <details class="reader-fulltext-wrap" id="reader-fulltext-wrap">
+            <summary class="reader-fulltext-toggle">Full email text</summary>
+            <pre class="reader-text" id="reader-text">—</pre>
+          </details>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" id="reader-open-gmail">Open in Gmail</button>
+          <button class="btn-primary" id="reader-done">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="manage-portfolios-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Manage portfolios</h3>
+          <button class="btn-icon" id="manage-portfolios-close">×</button>
+        </div>
+        <div class="modal-body">
+          <ul class="portfolio-list" id="portfolio-list"></ul>
+          <div class="portfolio-add-row">
+            <input type="text" id="new-portfolio-name" placeholder="New portfolio name" maxlength="40" />
+            <button class="btn-primary" id="new-portfolio-add">＋ Add</button>
+          </div>
+          <div class="modal-error hidden" id="manage-portfolios-error"></div>
+          <div class="hint">Sync mirrors only the active portfolio. Switching portfolios will, on next change, push that portfolio's positions to the cloud.</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-primary" id="manage-portfolios-done">Done</button>
+        </div>
+      </div>
+    </div>
 
     <div class="modal-backdrop hidden" id="watch-modal">
       <div class="modal">
@@ -222,6 +450,16 @@
             <input type="password" id="settings-token" placeholder="paste OWNER_TOKEN" />
           </label>
           <div class="settings-test-result hidden" id="settings-test-result"></div>
+
+          <div class="settings-divider"></div>
+
+          <label>Obsidian vault folder
+            <div class="path-input-row">
+              <input type="text" id="settings-vault-path" placeholder="e.g. C:\Users\pkimy\Documents\Obsidian Vault" />
+              <button class="btn-secondary" id="settings-vault-browse">Browse…</button>
+            </div>
+          </label>
+          <div class="hint">The dashboard looks for a <code>TICKER.md</code> file in this folder (or any subfolder). Falls back to <code>TICKER&nbsp;-&nbsp;Name.md</code> pattern, then to a <code>ticker:</code> frontmatter field.</div>
         </div>
         <div class="modal-footer">
           <button class="btn-secondary" id="settings-test">Test</button>
@@ -244,8 +482,17 @@
               <div class="suggestions hidden" id="add-suggestions"></div>
             </div>
           </label>
-          <label>Shares <input type="number" id="add-shares" step="any" min="0" /></label>
-          <label>Avg cost (per share, USD) <input type="number" id="add-cost" step="any" min="0" /></label>
+          <div class="input-mode-row">
+            <span class="input-mode-label">Enter by</span>
+            <div class="input-mode-toggle">
+              <button type="button" class="input-mode-btn active" data-mode="shares">Shares</button>
+              <button type="button" class="input-mode-btn" data-mode="dollar">Dollar amount</button>
+            </div>
+          </div>
+          <label id="add-shares-label">Shares <input type="number" id="add-shares" step="any" min="0" placeholder="e.g. 10 or 27.78" /></label>
+          <label id="add-total-label" class="hidden">Total filled ($) <input type="number" id="add-total" step="any" min="0" placeholder="e.g. 5000" /></label>
+          <label>Avg cost (per share, USD) <input type="number" id="add-cost" step="any" min="0" placeholder="e.g. 180" /></label>
+          <div class="add-preview hidden" id="add-preview"></div>
           <label>Purchase date <input type="date" id="add-date" /></label>
           <div class="modal-error hidden" id="add-error"></div>
         </div>
@@ -258,6 +505,7 @@
 
     <script src="../node_modules/chart.js/dist/chart.umd.js"></script>
     <script src="../node_modules/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.js"></script>
+    <script src="../node_modules/marked/marked.min.js"></script>
     <script src="renderer.js"></script>
   </body>
 </html>
